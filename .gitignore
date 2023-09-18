@@ -1,0 +1,57 @@
+# Python-specific ignore patterns
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Logs
+*.log
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE-specific files and directories
+.idea/
+.vscode/
+
+# Compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# Package distribution / packaging
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+__pycache__/
+bin/
+include/
+libexec/
+Scripts/
+data/
+*.egg
+*.egg-info
+*.pyc
+*.pyo
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Other
+*.swp
+.DS_Store
+.env
+*.sql

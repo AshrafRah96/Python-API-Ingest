@@ -1,0 +1,15 @@
+api:
+  endpoint: "https://developer.uspto.gov/ibd-api/v1/application/grants"
+  row_limit: 100
+  large_text_search_flag: "N"
+  max_retries: 3
+  start_index: 0
+  rows_per_request: 100
+
+output:
+  directory: "./patent_fetcher/output"
+  format: "json"
+
+logging:
+  level: "INFO"
+  logfile: "./patent_fetcher/logs/application.log"

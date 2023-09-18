@@ -1,0 +1,10 @@
+[
+    {
+        "patentNumber": "12345",
+        "patentApplicationNumber": "67890",
+        "assigneeEntityName": "Company ABC",
+        "filingDate": "2023-01-01",
+        "grantDate": "2023-02-01",
+        "inventionTitle": "A Great Invention"
+    }
+]
