@@ -49,3 +49,17 @@ April 25th 2001 and March 25th 2001 inclusive of both dates.
 ```bash
 docker run patent_fetcher 2017-01-01 2017-01-03
 ```
+
+note: you will need to run docker cp to extract output file from the container
+
+call_api.py = is designed to interact with the USPTO API, retrieve patent data within a specified date range, handle pagination, and log any errors encountered during the process. It separates concerns by using different classes for API requests, data processing, and logging, making the code modular and maintainable.
+
+The usage of configuration settings allows for flexibility in adapting the code to different API endpoints and logging configurations. Additionally, error handling is implemented to handle potential issues such as network errors or JSON decoding errors during API requests.
+
+process_data.py = follows the principles of separation of concerns and modularity. The IDataSaver interface allows for flexibility in implementing different data-saving strategies, and the JsonDataSaver class provides a concrete implementation for saving data in JSON format. The DataProcessor class coordinates the overall data processing and saving flow, and the DataExtractor class isolates the data extraction logic.
+
+The use of configuration settings (config) allows for easy customization of output paths and logging configurations. Error handling is implemented to log errors and provide feedback in case of issues during data processing and saving.
+
+logs.py = this Logger class provides a straightforward way to configure and use logging within an application. It allows for the separation of log levels and log messages, making it easy to control which messages are logged and where they are logged (e.g., to a file). It also adds an extra layer of customization by allowing different log types (error, info, warning) to be handled differently, such as with different log levels or destinations.
+
+cli.py = This design allows for a clear separation of concerns, where the StartProcess class is responsible for coordinating the overall process, while the USPTO class handles API interaction and the DataProcessor class manages data processing and saving. Additionally, the script can be executed from the command line with start and end date arguments, making it a convenient and reusable tool for fetching patent data.
