@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from patent_fetcher.logs import Logger
 
 
+# Why create this abstract class if we have only one data saving method?
 class IDataSaver(ABC):
     """A data saver interface defining the contract for data saving strategies."""
 
@@ -41,6 +42,7 @@ class DataProcessor:
             self.logging.log_error("No data to save")
 
 
+# Would have been better to use an @dataclass for this class.
 class DataExtractor:
     """A class responsible for extracting significant fields from data items."""
 

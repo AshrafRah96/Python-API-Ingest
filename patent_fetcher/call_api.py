@@ -51,10 +51,15 @@ class APIRequester:
         }
         try:
             response = requests.get(
+                # There should be a timeout on this request.
                 url, params=params, headers={"Accept": "application/json"}, verify=False
             )
+            # Good to see the use of raise_for_status() here.
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
+            # You loose the original exception here. You should log the original
+            # exception because requests exceptions have a lot of extra context that is
+            # useful.
             return {"error": f"Request error: {str(e)}"}
         except json.JSONDecodeError as e:
             return {"error": f"JSON Decode error: {str(e)}"}
@@ -101,10 +106,18 @@ class USPTO:
         """
         while True:
             response_data = self._fetch_data_page()
+            # Since you're just returning None here when you run into an error, it would
+            # be better not to handle the error and just let it bubble up. This makes it
+            # easier to debug when there is an error.
             if response_data is None:
                 return None
 
             data_docs = self._extract_data_docs(response_data)
+            # saving all the data in memory like this would result in a memory error if
+            # the data is too large. For example, if I wanted to download all the
+            # patents for an entire year, the process would run out of memory very
+            # quickly. A better solution would be to periodically flush
+            # the data to disk to avoid out of memory errors.
             self.all_data.extend(data_docs)
 
             if not self._has_more_data(data_docs):
@@ -136,6 +149,8 @@ class USPTO:
         return response_data.get("results", [])
 
     def _has_more_data(self, data_docs: List[dict]) -> bool:
+        # Generally I wouldn't bother writing docstrings for private functions unless
+        # it's very complicated.
         """Checks if there are more data to fetch from the API.
 
         Args:

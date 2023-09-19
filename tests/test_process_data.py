@@ -2,7 +2,7 @@ import pytest
 import logging
 from patent_fetcher.process_data import (
     DataProcessor,
-    IDataSaver,
+    IDataSaver, # Imported but not used
     JsonDataSaver,
     DataExtractor,
 )

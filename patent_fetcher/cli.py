@@ -28,6 +28,8 @@ class StartProcess:
         data = uspto_instance.fetch_patent_data()
         data_saver = JsonDataSaver()
         data_processor = DataProcessor(config, data_saver)
+        # fetch_patent_data can return None sometimes and this is not handled correctly
+        # here.
         data_processor.process_and_save_data(data)
 
 

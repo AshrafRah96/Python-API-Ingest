@@ -1,3 +1,4 @@
+# Good dockerfile.
 # Use an official Python runtime as a parent image
 FROM python:3.11
 
@@ -8,6 +9,7 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 # Install any needed packages specified in requirements.txt
+# Is the trusted-host flag necessary?
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
 # Copy the rest of the application code into the container

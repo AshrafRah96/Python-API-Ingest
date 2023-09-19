@@ -1,6 +1,8 @@
 import logging
 
 
+# Writing your own logger class is not necessary. Use the built-in logging module
+# instead. It has all the functionality you have implemented here and more.
 class Logger:
     """A class to handle logging of errors, warnings, and messages.
 
