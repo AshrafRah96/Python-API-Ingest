@@ -1,98 +1,48 @@
 import pytest
-import logging
-from patent_fetcher.process_data import (
-    DataProcessor,
-    IDataSaver,
-    JsonDataSaver,
-    DataExtractor,
-)
-import json
+
+from patent_fetcher.process_data import DataExtractor, DataProcessor
 
 
-class TestDataExtractor:
-    def test_extract(self):
-        data_item = {
+def test_data_processor_initialization(data_saver):
+    data_processor = DataProcessor(data_saver)
+    assert data_processor.output_config is not None
+    assert data_processor.data_saver == data_saver
+
+
+def test_data_processor_process_and_save_data(data_processor):
+    sample_data = [
+        {
             "patentNumber": "12345",
-            "patentApplicationNumber": "67890",
-            "assigneeEntityName": "Company ABC",
+            "patentApplicationNumber": "54321",
+            "assigneeEntityName": "XYZ Corp",
             "filingDate": "2023-01-01",
-            "grantDate": "2023-02-01",
-            "inventionTitle": "A Great Invention",
+            "grantDate": "2023-01-02",
+            "inventionTitle": "Innovative Invention",
         }
+    ]
 
-        extracted_data = DataExtractor.extract(data_item)
-
-        assert extracted_data == {
-            "patentNumber": "12345",
-            "patentApplicationNumber": "67890",
-            "assigneeEntityName": "Company ABC",
-            "filingDate": "2023-01-01",
-            "grantDate": "2023-02-01",
-            "inventionTitle": "A Great Invention",
-        }
+    data_processor.process_and_save_data(sample_data)
+    data_processor.data_saver.save.assert_called_once()
 
 
-class TestJsonDataSaver:
-    def test_save(self, tmp_path):
-        data = [{"key": "value"}]
-        output_config = {
-            "directory": tmp_path,
-            "format": "json",
-            "output": {},
-            "logging": {
-                "level": "INFO",
-                "logfile": "./patent_fetcher/logs/application.log",
-            },
-        }
-        data_saver = JsonDataSaver()
-        output_file = tmp_path / "output.json"
+def test_data_extractor_extract():
+    sample_item = {
+        "patentNumber": "12345",
+        "patentApplicationNumber": "54321",
+        "assigneeEntityName": "XYZ Corp",
+        "filingDate": "2023-01-01",
+        "grantDate": "2023-01-02",
+        "inventionTitle": "Innovative Invention",
+    }
 
-        data_saver.save(data, output_config)
+    expected_output = {
+        "patentNumber": "12345",
+        "patentApplicationNumber": "54321",
+        "assigneeEntityName": "XYZ Corp",
+        "filingDate": "2023-01-01",
+        "grantDate": "2023-01-02",
+        "inventionTitle": "Innovative Invention",
+    }
 
-        assert output_file.exists()
-        with open(output_file, "r") as f:
-            saved_data = json.load(f)
-        assert saved_data == data
-
-
-class TestDataProcessor:
-    @pytest.fixture
-    def data_processor(self, tmp_path):
-        output_config = {
-            "output": {"directory": tmp_path, "format": "json"},
-            "logging": {
-                "level": "INFO",
-                "logfile": "./patent_fetcher/logs/application.log",
-            },
-        }
-        data_saver = JsonDataSaver()
-        return DataProcessor(output_config, data_saver)
-
-    def test_process_and_save_data_with_data(self, data_processor, caplog):
-        data = {
-            "response": {
-                "docs": [
-                    {
-                        "patentNumber": "12345",
-                        "patentApplicationNumber": "67890",
-                        "assigneeEntityName": "Company ABC",
-                        "filingDate": "2023-01-01",
-                        "grantDate": "2023-02-01",
-                        "inventionTitle": "A Great Invention",
-                    }
-                ]
-            }
-        }
-
-        with caplog.at_level(logging.INFO):
-            data_processor.process_and_save_data(data)
-
-        assert "Data saved successfully" in caplog.text
-
-    def test_process_and_save_data_without_data(self, data_processor, caplog):
-        data = None
-
-        with caplog.at_level(logging.ERROR):
-            data_processor.process_and_save_data(data)
-
-        assert "No data to save" in caplog.text
+    result = DataExtractor.extract(sample_item)
+    assert result == expected_output

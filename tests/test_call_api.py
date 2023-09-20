@@ -1,203 +1,60 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from patent_fetcher.call_api import USPTO, APIRequester
+from patent_fetcher.call_api import (
+    APIRequester,
+    Config,
+    USPTODataFetcher,
+    USPTODataProcessor,
+)
+from patent_fetcher.data_saver import JsonDataSaver
 
 
-# Mocking the APIRequester class
 @pytest.fixture
-def mock_api_requester():
-    with patch("patent_fetcher.call_api.requests.get") as mock_get:
-        yield mock_get
+def api_requester():
+    config = Config().get_config()
+    return APIRequester(config)
 
 
-# Test data for APIRequester.fetch_data
-fetch_data_test_data = [
-    (
-        "2023-01-01",
-        "2023-01-31",
-        0,
-        10,
-        "flag1",
-        {
-            "api": {
-                "endpoint": "https://example.com/api",
-                "row_limit": 10,
-                "large_text_search_flag": "flag1",
-                "start_index": 0,
-                "rows_per_request": 10,
-            }
-        },
-        {
-            "grantFromDate": "2023-01-01",
-            "grantToDate": "2023-01-31",
-            "start": 0,
-            "rows": 10,
-            "largeTextSearchFlag": "flag1",
-        },
-        {"response": {"docs": [{"data": "document1"}]}},
-    ),
-    # Add more test cases as needed
-]
+@pytest.fixture
+def uspto_instance():
+    return USPTODataFetcher("2023-01-01", "2023-01-31")
 
 
-@pytest.mark.parametrize(
-    "start_date, end_date, start_index, row_limit, large_text_search_flag, api_config, expected_params, expected_response",
-    fetch_data_test_data,
-)
-def test_api_requester_fetch_data(
-    mock_api_requester,
-    start_date,
-    end_date,
-    start_index,
-    row_limit,
-    large_text_search_flag,
-    api_config,
-    expected_params,
-    expected_response,
-):
-    """Test APIRequester.fetch_data method."""
-    api_requester = APIRequester(api_config=api_config)
-    mock_api_requester.return_value.status_code = 200
-    mock_api_requester.return_value.json.return_value = expected_response
-
-    result = api_requester.fetch_data(
-        start_date, end_date, start_index, row_limit, large_text_search_flag
-    )
-
-    mock_api_requester.assert_called_once_with(
-        api_config["api"]["endpoint"],
-        params=expected_params,
-        headers={"Accept": "application/json"},
-        verify=False,
-    )
-    assert result == expected_response
+@pytest.fixture
+def data_processor():
+    data_saver = JsonDataSaver()
+    return USPTODataProcessor(data_saver)
 
 
-# Test data for USPTO._has_more_data
-has_more_data_test_data = [
-    ([{"data": "doc1"}, {"data": "doc2"}, {"data": "doc2"}], 0, 2, True),
-    ([{"data": "doc1"}], 1, 10, False),
-    ([], 0, 10, False),
-]
+def test_fetch_data_success(mock_requests_get, api_requester):
+    response_data = {"results": []}
+    mock_requests_get.return_value.json.return_value = response_data
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    result = api_requester.fetch_data("2023-01-01", "2023-01-31", 0, 100, "Y")
+    assert result == response_data
 
 
-@pytest.mark.parametrize(
-    "data_docs, start_index, rows_per_request, expected_result", has_more_data_test_data
-)
-def test_uspto_has_more_data(data_docs, start_index, rows_per_request, expected_result):
-    """Test USPTO._has_more_data method."""
-    api_config = {
-        "api": {
-            "row_limit": 10,
-            "large_text_search_flag": "flag1",
-            "start_index": start_index,
-            "rows_per_request": rows_per_request,
-        },
-        "logging": {"level": "INFO", "logfile": "./logs/application.log"},
-    }
-    uspto = USPTO("2023-01-01", "2023-01-31", api_config)
-    uspto.all_data = data_docs
-
-    result = uspto._has_more_data(data_docs)
-
-    assert result == expected_result
+def test_fetch_data_failure(mock_requests_get, api_requester):
+    mock_requests_get.return_value.raise_for_status.side_effect = Exception("Error")
+    with pytest.raises(Exception, match="Error"):
+        api_requester.fetch_data("2023-01-01", "2023-01-31", 0, 100, "Y")
 
 
-# Test the fetch_patent_data method with mock responses
-def test_uspto_fetch_patent_data(mock_api_requester):
-    """Test USPTO.fetch_patent_data method."""
-    api_config = {
-        "api": {
-            "endpoint": "https://example.com/api",
-            "row_limit": 10,
-            "large_text_search_flag": "flag1",
-            "start_index": 0,
-            "rows_per_request": 10,
-        },
-        "logging": {"level": "INFO", "logfile": "./logs/application.log"},
-    }
-    uspto = USPTO("2023-01-01", "2023-01-31", api_config)
+def test_fetch_patent_data(data_processor, json_data_saver, uspto_instance):
+    uspto_instance.data_processor = data_processor
+    uspto_instance.data_saver = json_data_saver
 
-    mock_api_requester.return_value.status_code = 200
-    mock_api_requester.return_value.json.side_effect = [
-        {"results": [{"data1": "doc1", "data2": "doc2", "data3": "doc3"}]},
-    ]
+    page_data = {"results": []}
+    uspto_instance._fetch_data_page = MagicMock(return_value=page_data)
+    uspto_instance._extract_data_docs = MagicMock(return_value=[])
 
-    result = uspto.fetch_patent_data()
-
-    assert result == {
-        "response": {"docs": [{"data1": "doc1", "data2": "doc2", "data3": "doc3"}]}
-    }
+    result = uspto_instance.fetch_patent_data()
+    assert result is None
 
 
-# Test the _extract_data_docs method
-def test_uspto_extract_data_docs():
-    """Test USPTO._extract_data_docs method."""
-    api_config = {
-        "api": {
-            "row_limit": 10,
-            "large_text_search_flag": "flag1",
-            "start_index": 0,
-            "rows_per_request": 10,
-        },
-        "logging": {"level": "INFO", "logfile": "./logs/application.log"},
-    }
-    uspto = USPTO("2023-01-01", "2023-01-31", api_config)
-    response_data = {"results": [{"data": "doc1"}, {"data": "doc2"}]}
-
-    result = uspto._extract_data_docs(response_data)
-
-    assert result == [{"data": "doc1"}, {"data": "doc2"}]
-
-
-# Test the fetch_patent_data method when an API error occurs
-def test_uspto_fetch_patent_data_api_error(mock_api_requester):
-    """Test USPTO.fetch_patent_data method when an API error occurs."""
-    api_config = {
-        "api": {
-            "endpoint": "https://example.com/api",
-            "row_limit": 10,
-            "large_text_search_flag": "flag1",
-            "start_index": 0,
-            "rows_per_request": 10,
-        },
-        "logging": {"level": "INFO", "logfile": "./logs/application.log"},
-    }
-    uspto = USPTO("2023-01-01", "2023-01-31", api_config)
-
-    mock_api_requester.return_value.status_code = 500
-
-    result = uspto.fetch_patent_data()
-
-    assert result == {"response": {"docs": []}}
-
-
-# Custom exception for JSON decode error
-class JSONDecodeError(Exception):
-    pass
-
-
-# Test the fetch_patent_data method when a JSON decode error occurs
-def test_uspto_fetch_patent_data_json_decode_error(mock_api_requester):
-    """Test USPTO.fetch_patent_data method when a JSON decode error occurs."""
-    api_config = {
-        "api": {
-            "endpoint": "https://example.com/api",
-            "row_limit": 10,
-            "large_text_search_flag": "flag1",
-            "start_index": 0,
-            "rows_per_request": 10,
-        },
-        "logging": {"level": "INFO", "logfile": "./logs/application.log"},
-    }
-    uspto = USPTO("2023-01-01", "2023-01-31", api_config)
-
-    mock_api_requester.return_value.status_code = 200
-    mock_api_requester.return_value.json.side_effect = JSONDecodeError(
-        "JSON Decode Error"
-    )
-
-    with pytest.raises(JSONDecodeError):
-        uspto.fetch_patent_data()
+def test_fetch_patent_data_failure(uspto_instance):
+    uspto_instance._fetch_data_page = MagicMock(side_effect=Exception("Error"))
+    with pytest.raises(Exception, match="Error"):
+        uspto_instance.fetch_patent_data()
